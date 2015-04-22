@@ -1,0 +1,500 @@
+import cgi
+import webapp2
+from google.appengine.ext import db
+
+PAGE_MAIN=""" \
+<html>
+    <head>
+        <title>Generacion de Pedididos de Computadores</title>
+        <link href=\"/menu.css\" rel=\"stylesheet\" type=\"text/css\" />
+    </head>
+    <body>
+        <div id="wrapper">
+        <header>
+            <h2>Venta de Computadores</h2>
+        </header>
+            <center>
+        <ul id="nav">
+            <li><a href=\"/nuevoElemento">Registrar Nuevo elmento</a></li>
+            <li><a href=\"/nuevaOrden">Generar Orden</a></li>
+            <li><a href=\"/consultaOrden">Consultar orden</a>
+            <li><a href=\"/borrarOrden">Borrar Orden</a>
+            <li><a href=\"/sumarioOrden">Resumen de Ordnenes</a>
+            <li><a href=\"/actualizarOrden">Actualizacion datos Orden</a></li>
+        </ul>
+            </center>
+        <div id="push"></div>
+        </div>
+        <div id="footer">
+            Andres Copyright &COPY; 2015
+        </div>
+</html>
+"""
+
+ORDER=""" \
+<html>
+    <head>
+        <title>Orden de Computador</title>
+    </head>
+    <body>
+        <form action="/orden" method="post" autocomplete="off">
+            <table border="2">
+                <tr>
+                    <td>Nombre de usuario:</td>
+                    <td><input type="text" name="nom"></td>
+                </tr>
+                <tr>
+                    <td>Apellido de usuario:</td>
+                    <td><input type="text" name="apl"></td>
+                </tr>
+                <tr>
+                    <td>Direccion de usuario:</td>
+                    <td><input type="text" name="dir"></td>
+                </tr>
+                <tr>
+                    <td>telefono de usuario:</td>
+                    <td><input type="text" name="tel"></td>
+                </tr>
+            </table>
+            <br>
+            <table border="2">
+                <tr>
+                    <th>Tipo de equipo</th>
+                </tr>
+                <tr>
+                    <td><input type="radio" name="PC" value="Dell">Dell</td>
+                    <td><select name="Dellpc">
+                            <option value="">Seleccione un equipo...</option>
+                            <option value="14R">Inspiron 14R $999.000</option>
+                            <option value="15R">Inspiron 15R $1.300.000</option>
+                            <option value="xps">XPS 13 UltraBook $1.800.000</option>
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Cantidad:</td>
+                    <td><input type="text" name="cantd"></td>
+                </tr>
+                <tr>
+                    <td><input type="radio" name="PC" value="HP">HP</td>
+                    <td><select name="HPpc">
+                            <option value="">Seleccione un equipo...</option>
+                            <option value="G4">Pavilion g4-2000 Notebook PC$1.200.000</option>
+                            <option value="cq45">Compaq CQ45-900 $900.000</option>
+                            <option value="G6">Pavilion g6-2000 $1.900.000</option>
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Cantidad:</td>
+                    <td><input type="text" name="canth"></td>
+                </tr>
+                <tr>
+                    <td><input type="radio" name="PC" value="QBEX">QBEX</td>
+                    <td><select name="QBEXpc">
+                            <option value="">Seleccione un equipo...</option>
+                            <option value="slim">Slim Pad $800.000 </option>
+                            <option value="7916">Slim Pad 7916E $1.100.000</option>
+                            <option value="note">Slim Note $1.300.000</option>
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Cantidad:</td>
+                    <td><input type="text" name="cantq"></td>
+                </tr>
+                <tr>
+                    <td>Forma de pago:</td>
+                    <td>
+                        <input type="radio" name="pago" value="Efectivo">Efectivo
+                        <input type="radio" name="pago" value="Credito">Credito
+                    </td>
+                </tr>
+            </table>
+            <input type="submit" value="Ordenar">
+        </form>
+    </body>
+</html>
+"""
+
+SEARCH=""" \
+<html>
+    <head>
+        <title>Busqueda de ordenes</title>
+    </head>
+    <body>
+    <center>
+        <header>
+            <h3>Busqueda</h3>
+        </header>
+        <form action="/search" method="post" autocomplete="off">
+            Ingresar codigo de item pedido:
+            <input type="text" name="item">
+            <input type="submit" value="Buscar">
+        </form>
+    </body>
+</html>
+"""
+
+ITEM=""" \
+<html>
+    <head>
+        <title>Registro de elementos</title>
+    </head>
+    <body>
+        <form action="/Item" method="post" autocomplete="off">
+            <table border="2">
+                <tr>
+                    <td>Codigo del elemento: </td>
+                    <td><input type="text" name="codigo"></td>
+                </tr>
+                <tr>
+                    <td>Marca de elemento: </td>
+                    <td><input type="text" name="marca"></td>
+                </tr>
+                <tr>
+                    <td>Serie del elemento: </td>
+                    <td><input type="text" name="serie"></td>
+                </tr>
+                <tr>
+                    <td>Precio del elemento: </td>
+                    <td>$<input type="text" name="precio"></td>
+                </tr>
+            </table>
+            <input type="submit" value="Ingresar">
+        </form>
+    </body>
+</html>
+
+"""
+
+DELETE= """ \
+<html>
+    <head>
+        <title>Eleiminacion de Ordenes</title>
+    </head>
+    <body>
+    <center>
+        <header>
+            <h3>Escoga parametro de busqueda</h3>
+        </header>
+        <form action="/Borrar" method="post" autocomplete="off">
+            <table border="2">
+                <tr>
+                    <td><input type="radio" name="acc" value="user">Nombre de usuario: </td>
+                    <td><input type="text" name="name"></td>
+                </tr>
+                <tr>
+                    <td><input type="radio" name="acc" value="code">Codigo de elemento: </td>
+                    <td><input type="text" name="ID"></td>
+                </tr>
+            </table>
+            <input type="submit" value="Borrar">
+        </form>
+    </body>
+</html>
+
+"""
+
+SUMMARY = """ \
+<html>
+    <head>
+        <title>Sumario de Ordenes</title>
+    </head>
+    <body>
+    <center>
+        <header>
+            <h3>Ir a Sumario</h3>
+        </header>
+        <form action="/sumario" method="post">
+            <input type="submit" value="Mostrar">
+        </form>
+    </body>
+</html>
+
+"""
+
+UPDATE = """ \
+<html>
+    <head>
+        <title>Formulario de actualizacion</title>
+    </head>
+    <body>
+        <form action="/actFor" method="post" autocomplete="off">
+            Ingresar el nombre del cliente:
+            <input type="text" name="nombre">
+            <input type="submit" value="ir">
+        </form>
+    </body>
+</html>
+
+"""
+
+class Elemento(db.Model):
+        id_elem = db.StringProperty(indexed=True)
+        marca = db.StringProperty()
+        serie = db.StringProperty()
+        precio = db.IntegerProperty()
+
+class Orden(db.Model):
+        nombre = db.StringProperty()
+        apellido = db.StringProperty()
+        direccion = db.StringProperty()
+        telefono = db.StringProperty()
+        id_elem = db.StringProperty()
+        cantidad = db.IntegerProperty()
+        total = db.IntegerProperty()
+        pago = db.StringProperty()
+
+class callIndex(webapp2.RequestHandler):
+        def get(self):
+                self.response.out.write(PAGE_MAIN)
+
+class callOrder(webapp2.RequestHandler):
+    def get(self):
+        self.response.out.write(ORDER)
+
+class callSearch(webapp2.RequestHandler):
+        def get(self):
+                self.response.out.write(SEARCH)
+
+class callItem(webapp2.RequestHandler):
+        def get(self):
+                self.response.out.write(ITEM)
+
+class callDelete(webapp2.RequestHandler):
+        def get(self):
+                self.response.out.write(DELETE)
+
+class callSummary(webapp2.RequestHandler):
+        def get(self):
+                self.response.out.write(SUMMARY)
+
+class callUpdate(webapp2.RequestHandler):
+        def get(self):
+                self.response.out.write(UPDATE)
+
+class placeItem(webapp2.RequestHandler):
+        def post(self):
+               self.response.out.write('<html><head><title>Insercion de Item</title></head><body>')
+               cod = self.request.get('codigo')
+               mar = self.request.get('marca')
+               ser = self.request.get('serie')
+               pre = self.request.get('precio')
+               elemento = Elemento()
+               elemento.id_elem = cod
+               elemento.marca = mar
+               elemento.serie = ser
+               elemento.precio = int(pre)
+               elemento.put()
+               self.response.out.write('<h3>Elemento creado</h3>')
+               self.response.out.write('<br><a href=\"/">Inicio</a>')
+               self.response.out.write('</body></html>')
+               
+
+class placeOrder(webapp2.RequestHandler):
+    def post(self):
+        self.response.out.write('<html><head><title>Generacion de orden</title></head><body>')
+        nom = self.request.get('nom')
+        apl = self.request.get('apl')
+        add = self.request.get('dir')
+        tel = self.request.get('tel')
+        pcd = self.request.get('Dellpc')
+        pch = self.request.get('HPpc')
+        pcq = self.request.get('QBEXpc')
+        if pcd!="":
+                cod = pcd
+        elif pch!="":
+                cod = pch
+        elif pcq!="":
+                cod = pcq
+        else:
+                cod = 'None'
+        cad = self.request.get('cantd')
+        cah = self.request.get('canth')
+        caq = self.request.get('cantq')
+        pag = self.request.get('pago')
+        sql = "select * from Elemento where id_elem='%s'" % cod
+        src = db.GqlQuery(sql)
+        res = src.fetch(1)
+        prec = res[0].precio
+        if self.request.get('PC')=='Dell':
+            cant = cad
+            total = int(cant)*int(prec)
+        elif self.request.get('PC')=='HP':
+            cant = cah
+            total = int(cant)*int(prec)
+        elif self.request.get('PC')=='QBEX':
+            cant = caq
+            total = int(cant)*int(prec)
+        else:
+            cant = 0.0
+            total = 0.0
+            cod = 'No Item'
+        ins = Orden()
+        ins.nombre = nom
+        ins.apellido = apl
+        ins.direccion = add
+        ins.telefono = tel
+        ins.id_elem = cod
+        ins.cantidad = int(cant)
+        ins.total = int(total)
+        ins.pago = pag
+        ins.put()
+        self.response.out.write('<h3>Orden Generada</h3>')
+        self.response.out.write('<br><a href=\"/">Inicio</a>')
+        self.response.out.write('</body></html>')
+
+class searchOrder(webapp2.RequestHandler):
+	def post(self):
+                self.response.out.write('<html><body><table border=2 width=400>')
+                cod = self.request.get('item')
+                sql = "select * from Orden where id_elem='%s'" % cod
+                search = db.GqlQuery(sql)
+                con = search.fetch(1)
+                if len(con)>0:
+                        self.response.out.write('<tr><th>Nombre</th><th>Apellido</th><th>Direccion</th><th>Telefono \
+                                        </th><th>id elemento</th><th>cantidad</th><th>total</th><th>Forma de pago</th>')
+                        for row in search:
+                                self.response.out.write('<tr><td>%s</td>' % row.nombre)
+                                self.response.out.write('<td>%s</td>' % row.apellido)
+                                self.response.out.write('<td>%s</td>' % row.direccion)
+                                self.response.out.write('<td>%s</td>' % row.telefono)
+                                self.response.out.write('<td>%s</td>' % row.id_elem)
+                                self.response.out.write('<td>%d</td>' % row.cantidad)
+                                self.response.out.write('<td>$%d</td>' % row.total)
+                                self.response.out.write('<td>%s</td>' % row.pago)
+                else:
+                        self.response.out.write('<h3>No existe orden que cumpla con las caracteristicas.</h3>')
+                self.response.out.write('</table><br><a href=\"/">Inicio</a>')
+                self.response.out.write('</body></html>')
+
+class searchItem(webapp2.RequestHandler):
+        def post(self):
+                self.response.out.write('<html><body><table border=2 width=40%>')
+                self.response.out.write('<tr><th>ID</th><th>Marca</th><th>Serie</th><th>Precio</th></tr>')
+                cod = self.request.get('item')
+                sql = "select * from Elemento where id_elem='%s'" % cod
+                res = db.GqlQuery(sql)
+                for itm in res:
+                        self.response.out.write('<tr><td>%s</td>' % itm.id_elem)
+                        self.response.out.write('<td>%s</td>' % itm.marca)
+                        self.response.out.write('<td>%s</td>' % itm.serie)
+                        self.response.out.write('<td>%d</td>' % itm.precio)
+                self.response.out.write('</table><br><a href=\"/">Inicio</a>')
+                self.response.out.write('</body></html>')
+
+class deleteOrder(webapp2.RequestHandler):
+        def post(self):
+                self.response.out.write('<html><head><title>Elieminacion de ordenes</title></head><body>')
+                nom = self.request.get('name')
+                cod = self.request.get('ID')
+                if self.request.get('acc')=='user':
+                        sql = "select * from Orden where nombre='%s'" % nom
+                        delno = db.GqlQuery(sql)
+                        bor = delno.fetch(1)
+                        if len(bor)>0:
+                                bor[0].delete()
+                                self.response.out.write('<h3>Se ha borrado la orden de acuerdo al usuario</h3>')
+                        else:
+                                self.response.out.write('<h3>No se han encontrado ordenes de este usuario</h3>')
+                elif self.request.get('acc')=='code':
+                        sql = "select * from Orden where id_elem='%s'" % cod
+                        delno = db.GqlQuery(sql)
+                        bor = delno.fetch(1)
+                        if len(bor)>0:
+                                bor[0].delete()
+                                self.response.out.write('<h3>Se ha borrado la orden de acuerdo elemento pedido</h3>')
+                        else:
+                                self.response.out.write('<h3>No se han encontrado ordenes con este elemento</h3>')
+                else:
+                        self.response.out.write('<h3>No se han seleccionado parametros de busqueda</h3>')
+                self.response.out.write('<br><a href=\"/">Inicio</a>')
+                self.response.out.write('</body></html>')
+
+class summaryOrder(webapp2.RequestHandler):
+        def post(self):
+                self.response.out.write('<html><head><title>Sumario de ordenes</title></head><body><table border="2">')
+                sql = "select * from Orden"
+                pro = db.GqlQuery(sql)
+                self.response.out.write('<tr><th>Nombre</th><th>Apellido</th><th>Direccion</th><th>Telefono \
+                                        </th><th>id elemento</th><th>cantidad</th><th>total</th><th>Forma de pago</th>')
+                for row in pro:
+                        self.response.out.write('<tr><td>%s</td>' % row.nombre)
+                        self.response.out.write('<td>%s</td>' % row.apellido)
+                        self.response.out.write('<td>%s</td>' % row.direccion)
+                        self.response.out.write('<td>%s</td>' % row.telefono)
+                        self.response.out.write('<td>%s</td>' % row.id_elem)
+                        self.response.out.write('<td>%d</td>' % row.cantidad)
+                        self.response.out.write('<td>$%d</td>' % row.total)
+                        self.response.out.write('<td>%s</td>' % row.pago)
+                self.response.out.write('</table><br><a href=\"/">Inicio</a>')
+                self.response.out.write('</body></html>')
+
+class updateForm(webapp2.RequestHandler):
+        def post(self):
+                self.response.out.write('<html><head><title>Actualizacion de ordenes</title></head><body><form action="/actAcc" method="post" autocomplete="off">')
+                nom = self.request.get('nombre')
+                sql = "select * from Orden where nombre='%s'" % nom
+                usr = db.GqlQuery(sql)
+                upd = usr.fetch(1)
+                if len(upd)>0:
+                        self.response.out.write("<table border='2' width=24%>")
+                        self.response.out.write("<tr><td>Nombre:</td><td><input type=\"text\" name=\"nom\" value=\""+upd[0].nombre+"\"></td></tr>")
+                        self.response.out.write("<tr><td>Apellido:</td><td><input type=\"text\" name=\"apl\" value=\""+upd[0].apellido+"\"></td></tr>")
+                        self.response.out.write("<tr><td>Direccion:</td><td><input type=\"text\" name=\"dir\" value=\""+upd[0].direccion+"\"></td></tr>")
+                        self.response.out.write("<tr><td>Telefono:</td><td><input type=\"text\" name=\"tel\" value=\""+upd[0].telefono+"\"></td></tr>")
+                        self.response.out.write("<tr><td>Codigo elemento:</td><td><input type=\"text\" name=\"id\" value=\""+upd[0].id_elem+"\"></td></tr>")
+                        self.response.out.write("<tr><td>Cantidad:</td><td><input type=\"text\" name=\"can\" value=\""+str(upd[0].cantidad)+"\"></td></tr>")
+                        self.response.out.write("<tr><td>Total a Pagar:</td><td><input type=\"text\" name=\"tot\" value=\""+str(upd[0].total)+"\"></td></tr>")
+                        self.response.out.write("<tr><td>Id metodo de pago:</td><td><input type=\"text\" name=\"pag\" value=\""+upd[0].pago+"\"></td></tr>")
+                        self.response.out.write("<input type=\"hidden\" name=\"last\" value=\""+upd[0].nombre+"\">")
+                        self.response.out.write("</table><br><input type=\"submit\" value=\"actualizar\"><br>")
+                else:
+                        self.response.out.write("No existe un usuario con dicho nombre<br>")
+                self.response.out.write('<br><a href=\"/">Inicio</a>')
+                self.response.out.write('</body></html>')
+
+class updateOrder(webapp2.RequestHandler):
+        def post(self):
+                self.response.out.write('<html><head><title>Orden Actualizada</title></head><body>')
+                nom = self.request.get('nom')
+                apl = self.request.get('apl')
+                add = self.request.get('dir')
+                tel = self.request.get('tel')
+                itm = self.request.get('id')
+                can = self.request.get('can')
+                tot = self.request.get('tot')
+                pag = self.request.get('pag')
+                hid = self.request.get('last')
+                sql = "select * from Orden where nombre='%s'" % hid
+                new = db.GqlQuery(sql)
+                upd = new.fetch(1)
+                if len(upd)>0:
+                        upd[0].nombre = nom
+                        upd[0].apellido = apl
+                        upd[0].direccion = add
+                        upd[0].telefono = tel
+                        upd[0].id_elem = itm
+                        upd[0].cantidad = int(can)
+                        upd[0].total = int(tot)
+                        upd[0].pago = pag
+                        upd[0].put()
+                self.response.out.write("Orden actualizada correctamente<br>")
+                self.response.out.write('<br><a href=\"/">Inicio</a>')
+                self.response.out.write('</body></html>')
+                
+app = webapp2.WSGIApplication([('/', callIndex),
+                               ('/nuevaOrden', callOrder),
+                               ('/consultaOrden', callSearch),
+                               ('/orden', placeOrder),
+                               ('/search', searchOrder),
+                               ('/nuevoElemento', callItem),
+                               ('/Item', placeItem),
+                               ('/borrarOrden', callDelete),
+                               ('/Borrar', deleteOrder),
+                               ('/sumarioOrden', callSummary),
+                               ('/sumario', summaryOrder),
+                               ('/actualizarOrden', callUpdate),
+                               ('/actFor', updateForm),
+                               ('/actAcc', updateOrder)], debug=True)
