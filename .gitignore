@@ -452,7 +452,7 @@ class updateForm(webapp2.RequestHandler):
                         self.response.out.write("</table><br><input type=\"submit\" value=\"actualizar\"><br>")
                 else:
                         self.response.out.write("No existe un usuario con dicho nombre<br>")
-                self.response.out.write('<br><a href=\"/">Inicio</a>')
+                self.response.out.write('<br><a href=\"/">Ir a Inicio</a>')
                 self.response.out.write('</body></html>')
 
 class updateOrder(webapp2.RequestHandler):
